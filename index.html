@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Pro Studio | WebGL Painter Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300..700&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+</head>
+
+<body data-theme="light">
+
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="header-left">
+                <h1 class="brand-title">Painter<span>Pro</span></h1>
+                <span class="brand-subtitle">Interactive finish studio</span>
+            </div>
+            <!-- <div class="header-center">
+                <button class="upload-btn primary header-primary"
+                    onclick="document.getElementById('glb-upload').click()" title="Upload a .GLB or .GLTF 3D model">
+                    Load 3D Model
+                </button>
+                <input type="file" id="glb-upload" accept=".glb,.gltf" style="display:none"
+                    onchange="handleFileUpload(event)">
+            </div> -->
+            <div class="header-right">
+                <button class="icon-btn" id="btn-download-4k" onclick="download4K()"
+                    title="Download 4K Render">&#x1F4F8;</button>
+                <button class="icon-btn" onclick="toggleEstimator()" title="Cost Estimator">&#x20B9;</button>
+                <button class="icon-btn" onclick="toggleHelp()" title="Help &amp; Controls">&#x2753;</button>
+                <label class="theme-switch" title="Toggle Light/Dark Mode">
+                    <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </header>
+
+        <div class="app-main">
+            <main id="unity-view">
+                <div id="boot-overlay">
+                    <div class="boot-panel">
+                        <div class="spinner"></div>
+                        <div class="boot-copy">
+                            <div class="boot-text-primary">Preparing PainterPro Studio</div>
+                            <div class="boot-text-secondary">Loading 3D engine and materials&hellip;</div>
+                            <div class="boot-progress">
+                                <div class="boot-progress-track">
+                                    <div id="boot-progress-fill" class="boot-progress-fill"></div>
+                                </div>
+                                <span id="boot-progress-label" class="boot-progress-label">Loading 0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="import-overlay" style="display:none;">
+                    <div class="boot-panel">
+                        <div class="spinner"></div>
+                        <div class="boot-text-primary" id="import-primary-text">Working on your selection</div>
+                        <div class="boot-text-secondary" id="import-secondary-text">Applying changes&hellip;</div>
+                    </div>
+                </div>
+
+                <div id="unity-container">
+                    <iframe id="unity-iframe" src="unity.html" frameborder="0" style="width:100%;height:100%;"></iframe>
+                </div>
+            </main>
+
+            <aside id="sidebar" class="control-panel">
+                <div class="panel inspector-panel">
+                    <h3 class="panel-heading">Active Selection</h3>
+                    <div id="selected-name" class="selected-object-name">NONE SELECTED</div>
+                    <div id="selection-hint" class="selection-hint" style="display:none;">
+                        Object selected. Press <strong>Esc</strong> to return camera movement.
+                    </div>
+                    <div id="active-color-wrapper" class="active-color-wrapper" style="display:none;">
+                        <div id="active-color-swatch" class="active-color-swatch"></div>
+                        <div class="active-color-meta">
+                            <span id="active-color-name" class="active-color-name">&mdash;</span>
+                            <span id="active-color-hex" class="active-color-hex">&mdash;</span>
+                        </div>
+                    </div>
+                    <div id="material-section" style="display:none;">
+                        <div id="slot-container"></div>
+                    </div>
+
+                    <!-- Material Properties: shown on selection -->
+                    <div id="mat-props-section" style="display:none;">
+                        <div class="prop-divider"></div>
+                        <h3 class="panel-heading" style="margin-top:14px; margin-bottom:10px;">Material Properties</h3>
+
+                        <div class="prop-row">
+                            <div class="prop-label-group">
+                                <label class="prop-label" for="slider-tiling">Tiling</label>
+                                <span class="prop-value" id="val-tiling">1.0&times;</span>
+                            </div>
+                            <input type="range" class="prop-slider" id="slider-tiling" min="0.1" max="10" step="0.1"
+                                value="1" oninput="onTilingChange(this.value)">
+                        </div>
+
+                        <div class="prop-row">
+                            <div class="prop-label-group">
+                                <label class="prop-label" for="slider-roughness">Roughness</label>
+                                <span class="prop-value" id="val-roughness">0.50</span>
+                            </div>
+                            <input type="range" class="prop-slider" id="slider-roughness" min="0" max="1" step="0.01"
+                                value="0.5" oninput="onRoughnessChange(this.value)">
+                        </div>
+
+                        <div class="prop-row">
+                            <div class="prop-label-group">
+                                <label class="prop-label" for="slider-metallic">Metallic</label>
+                                <span class="prop-value" id="val-metallic">0.00</span>
+                            </div>
+                            <input type="range" class="prop-slider" id="slider-metallic" min="0" max="1" step="0.01"
+                                value="0" oninput="onMetallicChange(this.value)">
+                        </div>
+                    </div>
+
+                    <button class="reset-btn" onclick="resetObject()" title="Restore original materials">Reset to
+                        Original</button>
+                </div>
+
+                <div class="panel library-panel">
+                    <div class="library-toggle-group">
+                        <button id="btn-show-paints" class="toggle-tab active" onclick="switchLibrary('paints')"
+                            title="Browse color palette">Colors</button>
+                        <button id="btn-show-textures" class="toggle-tab" onclick="switchLibrary('textures')"
+                            title="Browse texture library">Textures</button>
+                    </div>
+
+                    <div id="section-paints" class="library-section">
+                        <div class="search-row">
+                            <input type="text" class="search-box" id="paintSearch" placeholder="Search colors..."
+                                onkeyup="filterPaints()">
+                            <button class="tool-icon-btn"
+                                onclick="document.getElementById('color-picker-input').click()"
+                                title="Custom Color Picker">&#x1F3A8;</button>
+                            <input type="color" id="color-picker-input" style="display:none"
+                                onchange="applyColor(this.value, 'Custom Color')">
+                        </div>
+                        <div class="grid-scroll-area">
+                            <div id="paint-grid"></div>
+                        </div>
+                    </div>
+
+                    <div id="section-textures" class="library-section" style="display:none;">
+                        <div class="search-row">
+                            <input type="text" class="search-box" id="textureSearch" placeholder="Search textures..."
+                                onkeyup="filterTextures()">
+                            <button class="tool-icon-btn" onclick="document.getElementById('tex-upload').click()"
+                                title="Upload Custom Texture">&#x1F4E4;</button>
+                            <input type="file" id="tex-upload" accept="image/*" style="display:none"
+                                onchange="handleTextureUpload(event)">
+                        </div>
+                        <div class="grid-scroll-area">
+                            <div id="texture-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal" style="display:none;" onclick="if(event.target === this) toggleHelp()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How to Use Painter Pro</h2>
+                <button class="close-btn" onclick="toggleHelp()">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>&#x1F3A8; Getting Started</h3>
+                    <p>1. Load a 3D model using the &ldquo;Load 3D Model&rdquo; button</p>
+                    <p>2. Click on any part of the model to select it</p>
+                    <p>3. Choose a color or texture to apply</p>
+                </div>
+                <div class="help-section">
+                    <h3>&#x1F5B1;&#xFE0F; Camera Controls</h3>
+                    <p><strong>Rotate:</strong> Right-click + Drag</p>
+                    <p><strong>Pan:</strong> Middle-click + Drag or Shift + Right-click + Drag</p>
+                    <p><strong>Zoom:</strong> Mouse Scroll Wheel</p>
+                </div>
+                <div class="help-section">
+                    <h3>&#x1F3AF; Selection Mode</h3>
+                    <p>Click an object to enter selection mode and apply materials.</p>
+                    <p>Press <strong>Esc</strong> to deselect and return to camera movement.</p>
+                </div>
+                <div class="help-section">
+                    <h3>&#x1F4F1; Touch Controls (Mobile/Tablet)</h3>
+                    <p><strong>Rotate:</strong> One finger drag</p>
+                    <p><strong>Pan:</strong> Two finger drag</p>
+                    <p><strong>Zoom:</strong> Pinch gesture</p>
+                </div>
+                <div class="help-section">
+                    <h3>&#x1F4F8; Download 4K</h3>
+                    <p>Click the camera button in the header to download a high-resolution PNG of the current view.</p>
+                </div>
+                <div class="help-section">
+                    <h3>&#x1F4A1; Tips</h3>
+                    <p>&bull; Use the search box to quickly find colors or textures</p>
+                    <p>&bull; Material controls include Tiling, Roughness, and Metallic</p>
+                    <p>&bull; Toggle between light and dark themes for comfort</p>
+                    <p>&bull; Reset materials anytime with the Reset button</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estimator Modal -->
+    <div id="estimator-modal" class="modal estimator-modal" style="display:none;"
+        onclick="if(event.target === this) toggleEstimator()">
+        <div class="modal-content estimator-content">
+            <div class="modal-header">
+                <h2>Cost Estimator (&#x20B9;)</h2>
+                <button class="close-btn" onclick="toggleEstimator()">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <div class="estimator-grid">
+                    <div class="est-row">
+                        <label class="est-label">Estimate Builder</label>
+                        <div id="est-lines" class="est-lines"></div>
+                    </div>
+                    <div class="est-row est-actions">
+                        <button type="button" class="upload-btn secondary" onclick="addEstimateLine()">+ Add
+                            Product</button>
+                        <button type="button" class="upload-btn secondary" onclick="runEstimate()">Run Estimate</button>
+                        <button type="button" class="upload-btn secondary" onclick="exportEstimatePdf()">Export
+                            PDF</button>
+                        <button type="button" class="upload-btn secondary"
+                            onclick="copyEstimateToClipboard()">Copy</button>
+                    </div>
+                    <div id="est-result" class="est-result">
+                        Enter quantity and rate to calculate an estimate.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>
